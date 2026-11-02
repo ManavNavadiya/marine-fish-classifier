@@ -1,0 +1,27 @@
+{
+  "selected_run": "random_forest_200",
+  "mlflow_run_id": "73c2e1d9edd34febb95db6a064bf5b8d",
+  "val_accuracy": 0.9617,
+  "val_f1_macro": 0.9616,
+  "test_accuracy": 0.958,
+  "test_f1_macro": 0.9576,
+  "features": [
+    "length_cm",
+    "weight_kg",
+    "height_cm",
+    "fin_count",
+    "water_temp_c",
+    "condition_factor",
+    "body_ratio"
+  ],
+  "classes": [
+    "Atlantic Herring",
+    "Atlantic Mackerel",
+    "Atlantic Salmon",
+    "Bluefin Tuna",
+    "Clownfish",
+    "European Sardine"
+  ],
+  "sklearn_version": "1.5.1",
+  "trained_at": "2026-11-02T05:46:10+00:00"
+}

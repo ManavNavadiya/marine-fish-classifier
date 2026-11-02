@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marine Fish Classifier</title>
+<style>
+  :root {
+    --bg: #eef5f8; --card: #ffffff; --ink: #0d2633; --muted: #5a7480;
+    --line: #d5e4ea; --accent: #0b7a8f; --accent-ink: #ffffff;
+    --bar: #9fd3dc; --bar-top: #0b7a8f; --bad: #b42318; --ok: #1f8a4c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #071820; --card: #0e2530; --ink: #e3f1f5; --muted: #8fb0bb;
+      --line: #1d3a47; --accent: #3cc3d6; --accent-ink: #04161d;
+      --bar: #1f4d5a; --bar-top: #3cc3d6; --bad: #ff8a80; --ok: #6fdc9b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 880px; margin: 0 auto; padding: 32px 16px 48px; }
+  header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  h1 { margin: 0; font-size: 1.7rem; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); margin: 4px 0 24px; }
+  .status { font-size: .85rem; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+  .dot.up { background: var(--ok); } .dot.down { background: var(--bad); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+  .card h2 { margin: 0 0 12px; font-size: 1rem; }
+  .presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+  .chip {
+    border: 1px solid var(--line); background: transparent; color: var(--ink);
+    border-radius: 999px; padding: 4px 10px; font-size: .82rem; cursor: pointer;
+  }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+  label { display: grid; grid-template-columns: 1fr 120px; align-items: center; gap: 8px; margin: 8px 0; font-size: .92rem; }
+  input {
+    width: 100%; padding: 7px 9px; border-radius: 8px; border: 1px solid var(--line);
+    background: transparent; color: var(--ink); font: inherit; text-align: right;
+  }
+  input:focus { outline: 2px solid var(--accent); outline-offset: 0; }
+  button.go {
+    margin-top: 14px; width: 100%; padding: 10px; border: 0; border-radius: 10px;
+    background: var(--accent); color: var(--accent-ink); font: 600 1rem system-ui, sans-serif; cursor: pointer;
+  }
+  button.go:disabled { opacity: .6; cursor: wait; }
+  .species { font-size: 1.6rem; font-weight: 700; margin: 4px 0 0; }
+  .conf { color: var(--muted); margin-bottom: 16px; }
+  .row { display: grid; grid-template-columns: 140px 1fr 52px; gap: 8px; align-items: center; font-size: .86rem; margin: 6px 0; }
+  .track { height: 10px; background: var(--line); border-radius: 6px; overflow: hidden; }
+  .fill { height: 100%; background: var(--bar); border-radius: 6px; transition: width .35s; }
+  .fill.top { background: var(--bar-top); }
+  .num { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+  .error { color: var(--bad); font-weight: 600; }
+  .empty { color: var(--muted); }
+  footer { margin-top: 20px; font-size: .82rem; color: var(--muted); }
+  footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Marine Fish Classifier</h1>
+    <span class="status"><span id="dot" class="dot"></span><span id="status">checking model…</span></span>
+  </header>
+  <p class="sub">Enter a fish's measurements and the model predicts its species.</p>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Measurements</h2>
+      <div class="presets" id="presets"></div>
+      <form id="fish-form">
+        <label>Length (cm) <input name="length_cm" type="number" step="any" required></label>
+        <label>Weight (kg) <input name="weight_kg" type="number" step="any" required></label>
+        <label>Body height (cm) <input name="height_cm" type="number" step="any" required></label>
+        <label>Fin count <input name="fin_count" type="number" step="1" required></label>
+        <label>Water temperature (°C) <input name="water_temp_c" type="number" step="any" required></label>
+        <button class="go" type="submit" id="go">Predict species</button>
+      </form>
+    </section>
+
+    <section class="card" aria-live="polite">
+      <h2>Prediction</h2>
+      <div id="result"><p class="empty">Pick a preset or enter values, then press Predict.</p></div>
+    </section>
+  </div>
+
+  <footer>API docs: <a href="/docs">/docs</a> · Health: <a href="/health">/health</a> · Metrics: <a href="/metrics">/metrics</a></footer>
+</main>
+
+<script>
+  const PRESETS = {
+    "Atlantic Salmon":   { length_cm: 72, weight_kg: 4.1, height_cm: 14.5, fin_count: 8, water_temp_c: 9 },
+    "Bluefin Tuna":      { length_cm: 210, weight_kg: 230, height_cm: 52, fin_count: 9, water_temp_c: 19 },
+    "Clownfish":         { length_cm: 9.5, weight_kg: 0.024, height_cm: 4.2, fin_count: 7, water_temp_c: 27 },
+    "Atlantic Mackerel": { length_cm: 34, weight_kg: 0.46, height_cm: 6.8, fin_count: 9, water_temp_c: 12 },
+    "Atlantic Herring":  { length_cm: 29, weight_kg: 0.22, height_cm: 5.8, fin_count: 7, water_temp_c: 10 },
+    "European Sardine":  { length_cm: 19, weight_kg: 0.07, height_cm: 3.9, fin_count: 7, water_temp_c: 17 }
+  };
+  const form = document.getElementById("fish-form");
+  const result = document.getElementById("result");
+  const go = document.getElementById("go");
+
+  const presetBox = document.getElementById("presets");
+  for (const [name, values] of Object.entries(PRESETS)) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.textContent = name;
+    b.onclick = () => { for (const [k, v] of Object.entries(values)) form.elements[k].value = v; };
+    presetBox.appendChild(b);
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const body = {};
+    for (const el of form.elements) if (el.name) body[el.name] = Number(el.value);
+    go.disabled = true;
+    try {
+      const res = await fetch("/predict", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const msg = typeof data.detail === "string" ? data.detail : "Please check the values.";
+        result.innerHTML = `<p class="error">${res.status}: ${escapeHtml(msg)}</p>`;
+        return;
+      }
+      const rows = Object.entries(data.probabilities).sort((a, b) => b[1] - a[1]).map(([name, p]) => `
+        <div class="row"><span>${escapeHtml(name)}</span>
+          <span class="track"><span class="fill ${name === data.species ? "top" : ""}" style="width:${(p * 100).toFixed(1)}%"></span></span>
+          <span class="num">${(p * 100).toFixed(1)}%</span></div>`).join("");
+      result.innerHTML = `<p class="species">${escapeHtml(data.species)}</p>
+        <p class="conf">${(data.confidence * 100).toFixed(1)}% confidence</p>${rows}`;
+    } catch (err) {
+      result.innerHTML = `<p class="error">Could not reach the API.</p>`;
+    } finally {
+      go.disabled = false;
+    }
+  });
+
+  fetch("/health").then(r => r.json()).then(h => {
+    document.getElementById("dot").className = "dot " + (h.model_loaded ? "up" : "down");
+    document.getElementById("status").textContent = h.model_loaded ? "model loaded" : "model not loaded";
+  }).catch(() => { document.getElementById("status").textContent = "API unreachable"; });
+
+  form.elements.length && Object.entries(PRESETS["Atlantic Salmon"]).forEach(([k, v]) => form.elements[k].value = v);
+</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+.venv/
+mlruns/
+mlartifacts/
+data/
+samples/
+models/candidates/
+tests/
+scripts/
+src/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+.git/
+.github/
+.DS_Store
+infra/
+monitoring/
