@@ -44,7 +44,7 @@ def load_model_card() -> dict:
 
 
 st.title("🐟 Marine Fish Classifier")
-   st.caption("Enter a fish's measurements and the model predicts its species. Deployed automatically via GitHub Actions.")
+st.caption("Enter a fish's measurements and the model predicts its species. Deployed automatically via GitHub Actions.")
 
 try:
     predictor = load_predictor()
